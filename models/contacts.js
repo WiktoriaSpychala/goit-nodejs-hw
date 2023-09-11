@@ -1,59 +1,32 @@
-const fs = require("fs/promises");
-const path = require("path");
-const { nanoid } = require("nanoid");
+const mongoose = require("mongoose")
+const { Schema } = require("mongoose");
 
-const contactsPath = path.join(__dirname, "./contacts.json");
+const contactSchema = new Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Set name for contact"],
+      match:
+        /(^[A-Z]{1}[a-z]{1,14} [A-Z]{1}[a-z]{1,14}$)|(^[А-Я]{1}[а-я]{1,14} [А-Я]{1}[а-я]{1,14}$)/,
+    },
+    email: {
+      type: String,
+      match: /[A-Z0-9._%+-]+@[A-Z0-9-]+.+.[A-Z]{2,4}/gim,
+    },
+    phone: {
+      type: String,
+      required: true,
+      match: /^((\+?3)?8)?((0\(\d{2}\)?)|(\(0\d{2}\))|(0\d{2}))\d{7}$/,
+    },
+    favorite: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  { versionKey: false }
+);
 
-const listContacts = async () => {
-  const data = await fs.readFile(contactsPath);
-  return JSON.parse(data);
-};
-const updateContacts = async (allContacts) => {
-  await fs.writeFile(contactsPath, JSON.stringify(allContacts, null, 2));
-};
-
-const getContactById = async ({ contactId }) => {
-  const allContacts = await listContacts();
-  const contact = allContacts.find(({ id }) => id === contactId);
-  return contact || null;
-};
-
-const removeContact = async ({ contactId }) => {
-  const allContacts = await listContacts();
-  const index = allContacts.findIndex(({ id }) => id === contactId);
-  if (index === -1) return null;
-  const [result] = allContacts.splice(index, 1);
-  updateContacts(allContacts);
-  return result;
-};
-
-const addContact = async (name, email, phone) => {
-  const allContacts = await listContacts();
-  const newContact = {
-    id: nanoid(),
-    name,
-    email,
-    phone,
-  };
-  allContacts.push(newContact);
-  updateContacts(allContacts);
-  return newContact;
-};
-
-const updateContact = async ({ contactId }, body) => {
-  const allContacts = await listContacts();
-  const index = allContacts.findIndex(({ id }) => id === contactId);
-  if (index === -1) return null;
-  allContacts[index] = { ...allContacts[index], ...body };
-  updateContacts(allContacts);
-  return allContacts[index];
-};
+const Contact = mongoose.model("contact", contactSchema);
 
 
-module.exports = {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-};
+module.exports = Contact;
