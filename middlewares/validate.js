@@ -1,54 +1,42 @@
-const Joi = require("joi");
+const { isValidObjectId } = require("mongoose");
 
-const addSchema = Joi.object({
-  name: Joi.string().required().messages({
-    "any.required": "missing required name field",
-  }),
-  email: Joi.string().required().messages({
-    "any.required": "missing required email field",
-  }),
-  phone: Joi.string().required().messages({
-    "any.required": "missing required phone field",
-  }),
-  favorite: Joi.boolean(),
-});
+const validateData = (schemas) => {
+  const validateContact = (req, res, next) => {
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({ message: "missing fields" });
+    }
 
-const updateFavoriteSchema = Joi.object({
-  favorite: Joi.boolean().required(),
-});
+    const { error, value } = schemas.validate(req.body, {
+      abortEarly: false,
+      allowUnknown: false,
+    });
 
-const validate = (req, res, next) => {
-  if (!Object.keys(req.body).length) {
-    return res.status(400).json({ message: "missing fields" });
+    if (error) {
+      return res.status(400).json({ message: `${error.details[0].message}` });
+    }
+    req.body = value;
+    next();
   }
+  return validateContact;
+};
 
-  const { error } = addSchema.validate(req.body);
-
-  if (error) {
-    return res.status(400).json({ message: `${error.details[0].message}` });
+const validateStatus = (req, _, next) => {
+  if (req.body && req.body.favorite === undefined) {
+    return res.status(400).json({ message: "missing field favorite" });
   }
 
   next();
 };
 
-const validateStatus = (req, res, next) => {
-  if (!Object.keys(req.body).length) {
-    return res.status(400).json({ message: "missing field favorite" });
+const validId = (req, res, next) => {
+  const { contactId } = req.params;
+  if (!isValidObjectId(contactId)) {
+    return res.status(400).json({ message: "${contactId} is not valid id" });
   }
-
-  const { error } = updateFavoriteSchema.validate(req.body);
-
-  if (error) {
-    return res.status(400).json({ message: `${error.details[0].message}` });
-  }
-
-  next();
-
 }
 
 module.exports = {
-  addSchema,
-  updateFavoriteSchema,
-  validate,
+  validateData,
   validateStatus,
-}
+  validId,
+};
