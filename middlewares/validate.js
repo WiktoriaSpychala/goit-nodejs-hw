@@ -20,7 +20,7 @@ const validateData = (schemas) => {
   return validateContact;
 };
 
-const validateStatus = (req, _, next) => {
+const validateStatus = (req, res, next) => {
   if (req.body && req.body.favorite === undefined) {
     return res.status(400).json({ message: "missing field favorite" });
   }
@@ -31,7 +31,7 @@ const validateStatus = (req, _, next) => {
 const validId = (req, res, next) => {
   const { contactId } = req.params;
   if (!isValidObjectId(contactId)) {
-    return res.status(400).json({ message: "${contactId} is not valid id" });
+    return res.status(400).json({ message: `${contactId} is not valid id` });
   }
 }
 
