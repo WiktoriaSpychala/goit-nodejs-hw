@@ -34,8 +34,18 @@ const loginSchema = Joi.object({
 const updateSubscriptionSchema = Joi.object({
   subscription: Joi.string().valid("starter", "pro", "business"),
 });
+
+const verifySchema = Joi.object({
+  email: Joi.string()
+    .pattern(
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/
+    )
+    .required(),
+});
+
 module.exports = {
   registerSchema,
-    loginSchema,
-    updateSubscriptionSchema,
+  loginSchema,
+  updateSubscriptionSchema,
+  verifySchema,
 };

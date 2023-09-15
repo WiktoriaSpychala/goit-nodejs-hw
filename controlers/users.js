@@ -2,6 +2,24 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user")
 const gravatart = require("gravatar");
+const { nanoid } = require("nanoid");
+const sendEmail = require("../services/sendEmail")
+
+const verify = async (req, res, next) => {
+    const { verificationToken } = req.params;
+    const user = await User.findOne({
+        verificationToken,
+    });
+    if (user === null) {
+        return res.status(404).json({ message: "User not found" });
+    }
+    await User.findByIdAndUpdate(user._id, {
+        verify: true,
+        verificationToken: null,
+    });
+    res.status(200).send({ message: "Verification successful" });
+}
+
 
 const getCurrent = async (req, res) => {
   const { email, subscription } = req.user;
@@ -19,7 +37,16 @@ const register = async (req, res) => {
     }
     const hashPassword = await bcrypt.hash(password, 10);
     const avatarURL = gravatart.url(email);
-    const newUser = await User.create({ ...req.body, password: hashPassword, avatarURL });
+    const verificationToken = nanoid();
+    const newUser = await User.create({ ...req.body, password: hashPassword, avatarURL, verificationToken });
+
+    const verifyEmail = {
+      to: email,
+      subject: "Verify email",
+      html: `<a target="_blank" href="http://localhost:3000/api/users/verify/${verificationToken}">Click verify email</a>`,
+    };
+    await sendEmail(verifyEmail);
+
     res.status(201).json({
         user: {
             email: newUser.email,
@@ -34,6 +61,10 @@ const login = async (req, res) => {
     if (!user) {
         return res.status(401).json({ message: "Email or password is wrong" });
     }
+    if (!user.verify) {
+        return res.status(401).json({ message: "Please verify your email" });
+    }
+
     const passwordCompare = await bcrypt.compare(password, user.password);
     if (!passwordCompare) {
         return res.status(401).json({ message: "Email or password is wrong" });
@@ -75,6 +106,7 @@ const updateSubscriptionStatus = async (req, res) => {
 
 
 module.exports = {
+    verify,
     getCurrent,
     register,
     login,
